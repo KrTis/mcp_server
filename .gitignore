@@ -1,0 +1,38 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# compiled Python files inside subfolders
+**/__pycache__/
+
+# virtual environments
+.venv/
+venv/
+env/
+
+# uv / project lock + metadata
+uv.lock
+.python-version
+
+# build / packaging
+dist/
+build/
+*.egg-info/
+
+# logs
+*.log
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# optional: local state (if it is runtime-only)
+state/__pycache__/
+
+# keep source code, ignore only caches
