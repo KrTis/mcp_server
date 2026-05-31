@@ -36,3 +36,6 @@ Thumbs.db
 state/__pycache__/
 
 # keep source code, ignore only caches
+
+# secrets
+.env
