@@ -1,6 +1,9 @@
 from mcp_server.server import mcp
 from mcp_server.news.scraper import scrape_website, scrape_all
 from mcp_server.news.sources import SOURCES
+from mcp.server.fastmcp import Image
+import requests
+from bs4 import BeautifulSoup
 
 @mcp.tool()
 def get_headlines_jutarnji():
@@ -52,3 +55,28 @@ def summarize_headlines():
         "total": len(summary),
         "items": summary
     }
+
+@mcp.tool()
+def get_felix_comic(comic_date: str | None = None) -> Image:
+    """
+    Fetch today's (or a specific date's) Felix comic from vecernji.hr.
+    comic_date: ISO date string YYYY-MM-DD, defaults to today.
+    """
+    from datetime import date
+    d = comic_date or date.today().isoformat()
+    page_url = f"https://www.vecernji.hr/zabava/felix/{d}"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+    r = requests.get(page_url, headers=headers, timeout=10)
+    r.raise_for_status()
+
+    soup = BeautifulSoup(r.text, "html.parser")
+    img_link = soup.find("a", href=lambda h: h and h.startswith("/media/img/") and h.endswith(".jpeg"))
+    if not img_link:
+        raise ValueError(f"Felix comic image not found on page for {d}")
+
+    img_url = "https://www.vecernji.hr" + img_link["href"]
+    img_r = requests.get(img_url, headers=headers, timeout=10)
+    img_r.raise_for_status()
+
+    return Image(data=img_r.content, format="jpeg")
