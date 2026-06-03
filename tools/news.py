@@ -89,7 +89,7 @@ def summarize_headlines():
     }
 
 @mcp.tool()
-def get_detailed_headlines(
+def get_news_briefing(
     source: list[str] | None = None,
     limit: int = 5,
 ) -> str:
