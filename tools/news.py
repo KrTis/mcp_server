@@ -2,7 +2,6 @@ from mcp_server.server import mcp
 from mcp_server.news.scraper import scrape_website, scrape_all, fetch_article_text
 from mcp_server.news.sources import SOURCES
 from mcp.server.fastmcp import Image
-from mcp.types import EmbeddedResource, TextResourceContents
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -93,7 +92,7 @@ def summarize_headlines():
 def get_detailed_headlines(
     source: list[str] | None = None,
     limit: int = 5,
-) -> EmbeddedResource:
+) -> str:
     """
     Fetch headlines and open each article to extract its full text, summarized via LLM.
     source: list of sources, e.g. ["jutarnji", "index"]. Available: jutarnji, vecernji, index, tportal. Omit for all.
@@ -124,15 +123,7 @@ def get_detailed_headlines(
                 summary = "(no url)"
             results.append(f"**{item['title']}** ({name})\n{summary}\n{item['url']}")
 
-    markdown = "\n\n---\n\n".join(results)
-    return EmbeddedResource(
-        type="resource",
-        resource=TextResourceContents(
-            uri="news://detailed-headlines",
-            mimeType="text/markdown",
-            text=markdown,
-        ),
-    )
+    return "\n\n---\n\n".join(results)
 
 
 @mcp.tool()
