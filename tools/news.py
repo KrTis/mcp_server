@@ -1,5 +1,5 @@
 from mcp_server.server import mcp
-from mcp_server.news.scraper import scrape_website, scrape_all
+from mcp_server.news.scraper import scrape_website, scrape_all, fetch_article_text
 from mcp_server.news.sources import SOURCES
 from mcp.server.fastmcp import Image
 import requests
@@ -55,6 +55,42 @@ def summarize_headlines():
         "total": len(summary),
         "items": summary
     }
+
+@mcp.tool()
+def get_detailed_headlines(
+    source: str | None = None,
+    limit: int = 5,
+) -> list[dict]:
+    """
+    Fetch headlines and open each article to extract its full text.
+    source: one of 'jutarnji', 'vecernji', 'index', 'tportal', or None for all.
+    limit: max articles per source (keep low to avoid long waits).
+    Returns list of {source, title, url, text}.
+    """
+    if source:
+        sources = {source: SOURCES[source]}
+    else:
+        sources = SOURCES
+
+    results = []
+    for name, base_url in sources.items():
+        try:
+            headlines = scrape_website(base_url, limit=limit)
+        except Exception as e:
+            results.append({"source": name, "error": str(e)})
+            continue
+
+        for item in headlines.get("items", []):
+            entry = {"source": name, "title": item["title"], "url": item["url"]}
+            if item["url"]:
+                try:
+                    entry["text"] = fetch_article_text(item["url"])
+                except Exception as e:
+                    entry["text"] = f"(failed to fetch: {e})"
+            results.append(entry)
+
+    return results
+
 
 @mcp.tool()
 def get_felix_comic(comic_date: str | None = None) -> Image:
