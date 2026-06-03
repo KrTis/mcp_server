@@ -71,12 +71,13 @@ def get_felix_comic(comic_date: str | None = None) -> Image:
     r.raise_for_status()
 
     soup = BeautifulSoup(r.text, "html.parser")
-    img_link = soup.find("a", href=lambda h: h and h.startswith("/media/img/") and h.endswith(".jpeg"))
+    img_link = soup.find("a", href=lambda h: h and h.startswith("/media/img/") and (h.endswith(".jpeg") or h.endswith(".png")))
     if not img_link:
         raise ValueError(f"Felix comic image not found on page for {d}")
 
     img_url = "https://www.vecernji.hr" + img_link["href"]
+    fmt = "png" if img_link["href"].endswith(".png") else "jpeg"
     img_r = requests.get(img_url, headers=headers, timeout=10)
     img_r.raise_for_status()
 
-    return Image(data=img_r.content, format="jpeg")
+    return Image(data=img_r.content, format=fmt)
