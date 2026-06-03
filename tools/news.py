@@ -2,8 +2,29 @@ from mcp_server.server import mcp
 from mcp_server.news.scraper import scrape_website, scrape_all, fetch_article_text
 from mcp_server.news.sources import SOURCES
 from mcp.server.fastmcp import Image
+import os
 import requests
 from bs4 import BeautifulSoup
+
+_LMS_URL = os.environ.get("LMS_API_URL", "http://localhost:1234/v1")
+_LMS_KEY = os.environ.get("LMS_API_KEY", "")
+_LMS_MODEL = os.environ.get("LMS_SUMMARY_MODEL", "mistralai/ministral-3-3b")
+
+
+def _summarize(text: str) -> str:
+    r = requests.post(
+        f"{_LMS_URL}/chat/completions",
+        headers={"Authorization": f"Bearer {_LMS_KEY}"},
+        json={
+            "model": _LMS_MODEL,
+            "messages": [{"role": "user", "content": f"Summarize this news article in 3 sentences:\n\n{text}"}],
+            "max_tokens": 200,
+            "temperature": 0.3,
+        },
+        timeout=60,
+    )
+    r.raise_for_status()
+    return r.json()["choices"][0]["message"]["content"].strip()
 
 @mcp.tool()
 def get_headlines_jutarnji():
@@ -84,9 +105,10 @@ def get_detailed_headlines(
             entry = {"source": name, "title": item["title"], "url": item["url"]}
             if item["url"]:
                 try:
-                    entry["text"] = fetch_article_text(item["url"])
+                    text = fetch_article_text(item["url"])
+                    entry["summary"] = _summarize(text)
                 except Exception as e:
-                    entry["text"] = f"(failed to fetch: {e})"
+                    entry["summary"] = f"(failed: {e})"
             results.append(entry)
 
     return results
