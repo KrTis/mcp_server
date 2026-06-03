@@ -92,12 +92,12 @@ def summarize_headlines():
 def get_detailed_headlines(
     source: list[str] | None = None,
     limit: int = 5,
-) -> list[dict]:
+) -> str:
     """
-    Fetch headlines and open each article to extract its full text.
-    source: list of sources to include, e.g. ["jutarnji", "index"]. Available: jutarnji, vecernji, index, tportal. Omit or pass null for all.
+    Fetch headlines and open each article to extract its full text, summarized via LLM.
+    source: list of sources, e.g. ["jutarnji", "index"]. Available: jutarnji, vecernji, index, tportal. Omit for all.
     limit: max articles per source (keep low, e.g. 3).
-    Returns list of {source, title, url, text}.
+    Returns pre-formatted markdown with title, summary, and URL for each article.
     """
     if source:
         sources = {s: SOURCES[s] for s in source if s in SOURCES}
@@ -109,20 +109,21 @@ def get_detailed_headlines(
         try:
             headlines = scrape_website(base_url, limit=limit)
         except Exception as e:
-            results.append({"source": name, "error": str(e)})
+            results.append(f"**{name}**: error - {e}")
             continue
 
         for item in headlines.get("items", []):
-            entry = {"source": name, "title": item["title"], "url": item["url"]}
             if item["url"]:
                 try:
                     text = fetch_article_text(item["url"])
-                    entry["summary"] = _summarize(text)
+                    summary = _summarize(text)
                 except Exception as e:
-                    entry["summary"] = f"(failed: {e})"
-            results.append(entry)
+                    summary = f"(failed: {e})"
+            else:
+                summary = "(no url)"
+            results.append(f"**{item['title']}** ({name})\n{summary}\n{item['url']}")
 
-    return results
+    return "\n\n---\n\n".join(results)
 
 
 @mcp.tool()
