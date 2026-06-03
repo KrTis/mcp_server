@@ -12,11 +12,22 @@ _LMS_MODEL = os.environ.get("LMS_SUMMARY_MODEL", "mistralai/ministral-3-3b")
 
 
 def _summarize(text: str) -> str:
+    # Use whichever model is currently loaded in LM Studio
+    try:
+        models = requests.get(
+            f"{_LMS_URL}/models",
+            headers={"Authorization": f"Bearer {_LMS_KEY}"},
+            timeout=5,
+        ).json()["data"]
+        model = next((m["id"] for m in models if "embed" not in m["id"].lower()), _LMS_MODEL)
+    except Exception:
+        model = _LMS_MODEL
+
     r = requests.post(
         f"{_LMS_URL}/chat/completions",
         headers={"Authorization": f"Bearer {_LMS_KEY}"},
         json={
-            "model": _LMS_MODEL,
+            "model": model,
             "messages": [{"role": "user", "content": f"Summarize this news article in 3 sentences:\n\n{text}"}],
             "max_tokens": 200,
             "temperature": 0.3,
