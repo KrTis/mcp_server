@@ -58,17 +58,17 @@ def summarize_headlines():
 
 @mcp.tool()
 def get_detailed_headlines(
-    source: str | None = None,
+    source: list[str] | None = None,
     limit: int = 5,
 ) -> list[dict]:
     """
     Fetch headlines and open each article to extract its full text.
-    source: one of 'jutarnji', 'vecernji', 'index', 'tportal', or None for all.
-    limit: max articles per source (keep low to avoid long waits).
+    source: list of sources to include, e.g. ["jutarnji", "index"]. Available: jutarnji, vecernji, index, tportal. Omit or pass null for all.
+    limit: max articles per source (keep low, e.g. 3).
     Returns list of {source, title, url, text}.
     """
     if source:
-        sources = {source: SOURCES[source]}
+        sources = {s: SOURCES[s] for s in source if s in SOURCES}
     else:
         sources = SOURCES
 
