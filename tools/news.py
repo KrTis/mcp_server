@@ -80,7 +80,7 @@ def summarize_headlines():
 @mcp.tool()
 def get_news_briefing(
     source: list[str] | None = None,
-    limit: int = 20,
+    limit: int = 10,
 ) -> str:
     """
     Fetch headlines and open each article to extract its full text, summarized via LLM.
