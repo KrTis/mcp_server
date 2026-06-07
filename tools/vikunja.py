@@ -113,7 +113,7 @@ def list_labels() -> list[dict]:
 def list_tasks(
     list_id: str | None = None,
     search: str | None = None,
-    is_done: bool | None = None,
+    is_done: bool | None = False,
     is_favorite: bool | None = None,
     min_priority: int | None = None,
     sort_by: str | None = None,
@@ -121,7 +121,7 @@ def list_tasks(
     page: int | None = None,
     page_size: int | None = None,
 ) -> list[dict]:
-    """List tasks with optional filters."""
+    """List tasks with optional filters. By default only returns incomplete tasks (is_done=False). Pass is_done=null to get all."""
     params = []
     filter_parts = []
 
