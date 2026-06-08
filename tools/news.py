@@ -1,6 +1,7 @@
 from mcp_server.server import mcp
 from mcp_server.news.scraper import scrape_website, scrape_all, fetch_article_text
 from mcp_server.news.sources import SOURCES
+from mcp_server.news.db import init_db, get_topics, get_or_create_topic, get_articles_by_topic, get_topic_timeline
 from mcp.server.fastmcp import Image
 import os
 import requests
@@ -10,15 +11,17 @@ _LMS_URL = os.environ.get("LMS_API_URL", "http://localhost:1234/v1")
 _LMS_KEY = os.environ.get("LMS_API_KEY", "")
 _LMS_MODEL = os.environ.get("LMS_SUMMARY_MODEL", "mistralai/ministral-3-3b")
 
-
+def _content_prompt(text):
+    existing_topics = get_topics()
+    return f"Summarize this news article in 3 sentences. At the end of the summary put the following: the word SENTIMENT followed by a sentiment analysis, then put the word TOPIC and a short topic. Use a topic from the list {existing_topics} that best suits this article. If the list is empy or no topic matches, suggest a new topic. The article to summarize is:\n\n{text}"
 def _summarize(text: str) -> str:
     r = requests.post(
         f"{_LMS_URL}/chat/completions",
         headers={"Authorization": f"Bearer {_LMS_KEY}"},
         json={
             "model": _LMS_MODEL,
-            "messages": [{"role": "user", "content": f"Summarize this news article in 3 sentences:\n\n{text}"}],
-            "max_tokens": 200,
+            "messages": [{"role": "user", "content": _content_prompt(text)}],
+            "max_tokens": 500,
             "temperature": 0.3,
         },
         timeout=60,
@@ -92,7 +95,7 @@ def get_news_briefing(
         sources = {s: SOURCES[s] for s in source if s in SOURCES}
     else:
         sources = SOURCES
-
+    init_db()
     results = []
     for name, base_url in sources.items():
         try:
@@ -110,6 +113,7 @@ def get_news_briefing(
                     summary = f"(failed: {e})"
             else:
                 summary = "(no url)"
+
             results.append(f"**{item['title']}** ({name})\n{summary}\n{item['url']}")
 
     return "\n\n---\n\n".join(results)
