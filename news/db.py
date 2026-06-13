@@ -17,6 +17,7 @@ def init_db():
                 id   INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL
             );
+
             CREATE TABLE IF NOT EXISTS articles (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 url        TEXT UNIQUE NOT NULL,
@@ -32,51 +33,97 @@ def init_db():
 
 def get_topics() -> list[str]:
     with _conn() as con:
-        return [r["name"] for r in con.execute("SELECT name FROM topics ORDER BY name").fetchall()]
+        return [
+            r["name"]
+            for r in con.execute(
+                "SELECT name FROM topics ORDER BY name"
+            ).fetchall()
+        ]
 
 
 def get_or_create_topic(name: str) -> int:
     with _conn() as con:
-        row = con.execute("SELECT id FROM topics WHERE name = ?", (name,)).fetchone()
+        row = con.execute(
+            "SELECT id FROM topics WHERE name = ?",
+            (name,)
+        ).fetchone()
+
         if row:
             return row["id"]
-        cur = con.execute("INSERT INTO topics (name) VALUES (?)", (name,))
+
+        cur = con.execute(
+            "INSERT INTO topics (name) VALUES (?)",
+            (name,)
+        )
+
         return cur.lastrowid
 
 
-def upsert_article(url: str, date: str, source: str, title: str,
-                   summary: str, sentiment: str, topic: str):
+def upsert_article(
+    url: str,
+    date: str,
+    source: str,
+    title: str,
+    summary: str,
+    sentiment: str,
+    topic: str,
+):
     topic_id = get_or_create_topic(topic)
+
     with _conn() as con:
-        con.execute("""
-            INSERT INTO articles (url, date, source, title, summary, sentiment, topic_id)
+        con.execute(
+            """
+            INSERT INTO articles
+            (url, date, source, title, summary, sentiment, topic_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)
+
             ON CONFLICT(url) DO UPDATE SET
-                date=excluded.date, source=excluded.source, title=excluded.title,
-                summary=excluded.summary, sentiment=excluded.sentiment, topic_id=excluded.topic_id
-        """, (url, date, source, title, summary, sentiment, topic_id))
+                date=excluded.date,
+                source=excluded.source,
+                title=excluded.title,
+                summary=excluded.summary,
+                sentiment=excluded.sentiment,
+                topic_id=excluded.topic_id
+            """,
+            (
+                url,
+                date,
+                source,
+                title,
+                summary,
+                sentiment,
+                topic_id,
+            ),
+        )
 
 
 def get_articles_by_topic(topic: str) -> list[dict]:
     with _conn() as con:
-        rows = con.execute("""
+        rows = con.execute(
+            """
             SELECT a.date, a.source, a.title, a.url, a.sentiment
             FROM articles a
             JOIN topics t ON t.id = a.topic_id
             WHERE t.name = ?
             ORDER BY a.date DESC
-        """, (topic,)).fetchall()
+            """,
+            (topic,),
+        ).fetchall()
+
         return [dict(r) for r in rows]
 
 
 def get_topic_timeline(topic: str) -> list[dict]:
-    """Returns date + summary + sentiment for trend analysis."""
     with _conn() as con:
-        rows = con.execute("""
+        rows = con.execute(
+            """
             SELECT a.date, a.summary, a.sentiment
             FROM articles a
             JOIN topics t ON t.id = a.topic_id
             WHERE t.name = ?
             ORDER BY a.date ASC
-        """, (topic,)).fetchall()
+            """,
+            (topic,),
+        ).fetchall()
+
         return [dict(r) for r in rows]
